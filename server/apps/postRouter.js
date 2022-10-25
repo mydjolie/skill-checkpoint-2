@@ -3,6 +3,7 @@ import { pool } from "../utils/db.js";
 
 const postRouter = Router();
 
+// View post by search category/keywords/all
 postRouter.get("/", async (req, res) => {
   const category = req.query.category || "";
   const keywords = req.query.keywords || "";
@@ -33,6 +34,7 @@ postRouter.get("/", async (req, res) => {
   });
 });
 
+// view post by ID
 postRouter.get("/:postId", async (req, res) => {
   const postId = req.params.postId;
   const result = await pool.query("select * from posts where post_id=$1", [
@@ -44,6 +46,7 @@ postRouter.get("/:postId", async (req, res) => {
   });
 });
 
+// create new post
 postRouter.post("/", async (req, res) => {
   const newPost = {
     ...req.body,
@@ -81,6 +84,7 @@ postRouter.post("/", async (req, res) => {
   });
 });
 
+// Update Post
 postRouter.put("/:postId", async (req, res) => {
   const updatedPost = {
     ...req.body,
@@ -106,6 +110,7 @@ postRouter.put("/:postId", async (req, res) => {
   });
 });
 
+// Delete Post
 postRouter.delete("/:id", async (req, res) => {
   const postId = req.params.id;
 
@@ -115,6 +120,7 @@ postRouter.delete("/:id", async (req, res) => {
     message: `Post ${postId} has been deleted.`,
   });
 });
+
 // Comment to a post
 postRouter.post("/:postId/comments", async (req, res) => {
   const postId = req.params.postId;
