@@ -82,8 +82,6 @@ postRouter.post("/", async (req, res) => {
 });
 
 postRouter.put("/:postId", async (req, res) => {
-  // const hasPublished = req.body.status === "published";
-
   const updatedPost = {
     ...req.body,
     updated_at: new Date(),
