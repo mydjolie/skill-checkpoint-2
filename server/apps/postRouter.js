@@ -115,5 +115,30 @@ postRouter.delete("/:id", async (req, res) => {
     message: `Post ${postId} has been deleted.`,
   });
 });
+// Comment to a post
+postRouter.post("/:postId/comments", async (req, res) => {
+  const postId = req.params.postId;
+  const newComment = {
+    ...req.body,
+    post_id: postId,
+    created_at: new Date(),
+  };
+  await pool.query(
+    `insert into comments (user_profile_id, post_id,comment_content,comment_media,comment_vote,created_at)
+    values ($1, $2, $3, $4, $5, $6)`,
+    [
+      2001,
+      newComment.post_id,
+      newComment.comment_content,
+      newComment.comment_media,
+      0,
+      newComment.created_at,
+    ]
+  );
+
+  return res.json({
+    message: "Comment has been posted!",
+  });
+});
 
 export default postRouter;
