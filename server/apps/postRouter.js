@@ -60,12 +60,12 @@ postRouter.post("/", async (req, res) => {
   const cat_id = category_input_id.rows[0].category_id;
 
   await pool.query(
-    `insert into posts(post_id, post_title, Post_content, media_file,category_id, post_by, created_at,updated_at, answer_by, comment_id, share, upvote, downvote)
+    `insert into posts(post_id, post_title, post_content, media_file,category_id, post_by, created_at,updated_at, answer_by, comment_id, share, upvote, downvote)
     values ($1, $2, $3, $4, $5, $6, $7, $8, $9,$10,$11,$12,$13)`,
     [
       1001,
       newPost.post_title,
-      newPost.Post_content,
+      newPost.post_content,
       newPost.media_file,
       cat_id,
       9999,
@@ -93,11 +93,11 @@ postRouter.put("/:postId", async (req, res) => {
   const postId = req.params.id;
   await pool.query(
     `UPDATE posts 
-    SET post_title=$1,Postcontent=$2,media_file=$3,category=$4,updated_at=$5,
+    SET post_title=$1,post_content=$2,media_file=$3,category=$4,updated_at=$5,
     WHERE post_id=$6`,
     [
       updatedPost.post_title,
-      updatedPost.Post_content,
+      updatedPost.post_content,
       updatedPost.media_file,
       updatedPost.category,
       updatedPost.updated_at,
@@ -143,7 +143,19 @@ postRouter.post("/:postId/comments", async (req, res) => {
   );
 
   return res.json({
-    message: "Comment has been posted!",
+    message: "Comment posted sucessfully!",
+  });
+});
+
+// view comments by postId
+postRouter.get("/:postId/comments", async (req, res) => {
+  const postId = req.params.postId;
+  const result = await pool.query("select * from comments where post_id =$1", [
+    postId,
+  ]);
+
+  return res.json({
+    data: result.rows,
   });
 });
 
