@@ -60,20 +60,17 @@ postRouter.post("/", async (req, res) => {
   const cat_id = category_input_id.rows[0].category_id;
 
   await pool.query(
-    `insert into posts(post_id, post_title, post_content, media_file,category_id, post_by, created_at,updated_at, answer_by, comment_id, share, upvote, downvote)
-    values ($1, $2, $3, $4, $5, $6, $7, $8, $9,$10,$11,$12,$13)`,
+    `insert into posts(post_title, post_content, media_file,category_id,post_by, created_at,updated_at, answer_by, share, post_vote )
+    values ($1, $2, $3, $4, $5, $6, $7, $8,$9,$10)`,
     [
-      1001,
       newPost.post_title,
       newPost.post_content,
       newPost.media_file,
       cat_id,
-      9999,
+      99,
       newPost.created_at,
       newPost.updated_at,
       150,
-      0,
-      0,
       0,
       0,
     ]
@@ -90,16 +87,22 @@ postRouter.put("/:postId", async (req, res) => {
     ...req.body,
     updated_at: new Date(),
   };
-  const postId = req.params.id;
+  const postId = req.params.postId;
+
+  const category_input_id = await pool.query(
+    "select * from categories where category_name ilike $1",
+    [updatedPost.category]
+  );
+
   await pool.query(
     `UPDATE posts 
-    SET post_title=$1,post_content=$2,media_file=$3,category=$4,updated_at=$5,
+    SET post_title=$1,post_content=$2,media_file=$3,category_id=$4,updated_at=$5
     WHERE post_id=$6`,
     [
       updatedPost.post_title,
       updatedPost.post_content,
       updatedPost.media_file,
-      updatedPost.category,
+      category_input_id.rows[0].category_id,
       updatedPost.updated_at,
       postId,
     ]
@@ -111,8 +114,8 @@ postRouter.put("/:postId", async (req, res) => {
 });
 
 // Delete Post
-postRouter.delete("/:id", async (req, res) => {
-  const postId = req.params.id;
+postRouter.delete("/:postId", async (req, res) => {
+  const postId = req.params.postId;
 
   await pool.query(`delete from posts where post_id=$1`, [postId]);
 
