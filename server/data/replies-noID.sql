@@ -1,5 +1,5 @@
 create table replies (
-reply_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  reply_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	comment_id INT REFERENCES comments(comment_id),
 	user_profile_id INT,
 	reply_content VARCHAR(50),

@@ -19,7 +19,7 @@ postRouter.get("/", async (req, res) => {
     values = [keywords];
   } else if (category) {
     query =
-      "select * from posts inner join categories on posts.category_id = categories.category_id  where category_name=$1 ";
+      "select * from posts inner join categories on posts.category_id = categories.category_id where category_name=$1 ";
     values = [category];
   } else {
     query =
@@ -88,7 +88,6 @@ postRouter.put("/:postId", async (req, res) => {
     updated_at: new Date(),
   };
   const postId = req.params.postId;
-
   const category_input_id = await pool.query(
     "select * from categories where category_name ilike $1",
     [updatedPost.category]
@@ -162,4 +161,85 @@ postRouter.get("/:postId/comments", async (req, res) => {
   });
 });
 
+// vote post by id
+postRouter.post("/:postId", async (req, res) => {
+  const votePost = {
+    ...req.body,
+  };
+  const postId = req.params.postId;
+  const postVoteQuantityArr = await pool.query(
+    "select post_vote_quantity from posts inner join posts_vote on posts.post_id = posts_vote.post_id where posts.post_id = $1",
+    [postId]
+  );
+  let postVoteQuantity = postVoteQuantityArr.rows[0].post_vote_quantity;
+  let newPostVoteQuantity = 0;
+  console.log("vpq");
+  console.log(postVoteQuantity);
+
+  const ifHaveVoted = await pool.query(
+    `select * from posts_vote where post_vote=$1 and user_profile_id = $2`,
+    [votePost.post_vote, votePost.user_profile_id]
+  );
+
+  const haveUpvoted = ifHaveVoted.rows[0];
+
+  console.log("haveUp");
+  console.log(haveUpvoted);
+  if (haveUpvoted === undefined) {
+    await pool.query(
+      `insert into posts_vote (user_profile_id,post_id,post_vote)
+   values ($1, $2, $3)`,
+      [votePost.user_profile_id, postId, votePost.post_vote]
+    );
+    if (votePost.post_vote === "true") {
+      console.log("no have send true");
+      newPostVoteQuantity = postVoteQuantity + 1;
+    } else if (votePost.post_vote === "false") {
+      console.log("no have send false");
+      newPostVoteQuantity = postVoteQuantity - 1;
+    }
+  } else if (
+    haveUpvoted.post_vote === votePost.post_vote &&
+    haveUpvoted.post_vote !== undefined
+  ) {
+    console.log(" have no plus");
+    newPostVoteQuantity = postVoteQuantity + 0;
+  } else if (
+    haveUpvoted.post_vote !== votePost.post_vote &&
+    votePost.post_vote == true
+  ) {
+    await pool.query(
+      `update post_vote set post_vote = $1 where user_profile_id = $2 `,
+      [votePost.post_vote, votePost.user_profile_id]
+    );
+    console.log("have false send true");
+    newPostVoteQuantity = postVoteQuantity + 1;
+  } else if (
+    haveUpvoted !== votePost.post_vote &&
+    votePost.post_vote == false
+  ) {
+    await pool.query(
+      `update post_vote set post_vote = $1 where user_profile_id = $2 `,
+      [votePost.post_vote, votePost.user_profile_id]
+    );
+    console.log("have true send false");
+    newPostVoteQuantity = postVoteQuantity - 1;
+  }
+  console.log("update");
+  console.log(postVoteQuantity);
+  postVoteQuantity = newPostVoteQuantity;
+  await pool.query(
+    `UPDATE posts
+      SET post_vote_quantity=$1
+      WHERE post_id=$2`,
+    [newPostVoteQuantity, postId]
+  );
+  console.log(postVoteQuantity);
+  console.log("postid:", postId);
+  console.log("userid:", votePost.user_profile_id);
+
+  return res.json({
+    message: `Post Voted! ${postVoteQuantity}`,
+  });
+});
 export default postRouter;
