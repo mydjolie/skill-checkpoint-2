@@ -167,64 +167,71 @@ postRouter.post("/:postId", async (req, res) => {
     ...req.body,
   };
   const postId = req.params.postId;
+  console.log(postId);
   const postVoteQuantityArr = await pool.query(
     "select post_vote_quantity from posts inner join posts_vote on posts.post_id = posts_vote.post_id where posts.post_id = $1",
     [postId]
   );
   let postVoteQuantity = postVoteQuantityArr.rows[0].post_vote_quantity;
   let newPostVoteQuantity = 0;
-  console.log("vpq");
-  console.log(postVoteQuantity);
-
   const ifHaveVoted = await pool.query(
-    `select * from posts_vote where post_vote=$1 and user_profile_id = $2`,
-    [votePost.post_vote, votePost.user_profile_id]
+    `select post_id,user_profile_id,post_vote from posts_vote where user_profile_id = $1 and post_id=$2`,
+    [votePost.user_profile_id, postId]
   );
 
-  const haveUpvoted = ifHaveVoted.rows[0];
+  const haveUpvoted = ifHaveVoted.rows;
 
   console.log("haveUp");
   console.log(haveUpvoted);
-  if (haveUpvoted === undefined) {
+  if (haveUpvoted.length === 0) {
     await pool.query(
       `insert into posts_vote (user_profile_id,post_id,post_vote)
    values ($1, $2, $3)`,
       [votePost.user_profile_id, postId, votePost.post_vote]
     );
+    console.log("undefied inserted!");
     if (votePost.post_vote === "true") {
       console.log("no have send true");
       newPostVoteQuantity = postVoteQuantity + 1;
     } else if (votePost.post_vote === "false") {
       console.log("no have send false");
-      newPostVoteQuantity = postVoteQuantity - 1;
+      if (postVoteQuantity === 0) {
+        newPostVoteQuantity = postVoteQuantity;
+      } else {
+        newPostVoteQuantity = postVoteQuantity - 1;
+      }
     }
-  } else if (
-    haveUpvoted.post_vote === votePost.post_vote &&
-    haveUpvoted.post_vote !== undefined
-  ) {
-    console.log(" have no plus");
-    newPostVoteQuantity = postVoteQuantity + 0;
-  } else if (
-    haveUpvoted.post_vote !== votePost.post_vote &&
-    votePost.post_vote == true
-  ) {
-    await pool.query(
-      `update post_vote set post_vote = $1 where user_profile_id = $2 `,
-      [votePost.post_vote, votePost.user_profile_id]
-    );
-    console.log("have false send true");
-    newPostVoteQuantity = postVoteQuantity + 1;
-  } else if (
-    haveUpvoted !== votePost.post_vote &&
-    votePost.post_vote == false
-  ) {
-    await pool.query(
-      `update post_vote set post_vote = $1 where user_profile_id = $2 `,
-      [votePost.post_vote, votePost.user_profile_id]
-    );
-    console.log("have true send false");
-    newPostVoteQuantity = postVoteQuantity - 1;
+  } else {
+    if (haveUpvoted[0].post_vote === votePost.post_vote) {
+      console.log(" have no plus");
+      newPostVoteQuantity = postVoteQuantity + 0;
+    } else if (
+      haveUpvoted[0].post_vote !== votePost.post_vote &&
+      votePost.post_vote == "true"
+    ) {
+      await pool.query(
+        `update posts_vote set post_vote = $1 where user_profile_id = $2 `,
+        [votePost.post_vote, votePost.user_profile_id]
+      );
+      console.log("have false send true");
+      newPostVoteQuantity = postVoteQuantity + 1;
+    } else if (
+      haveUpvoted[0].post_vote !== votePost.post_vote &&
+      votePost.post_vote == "false"
+    ) {
+      await pool.query(
+        `update posts_vote set post_vote = $1 where user_profile_id = $2 `,
+        [votePost.post_vote, votePost.user_profile_id]
+      );
+      console.log("have true send false");
+      if (postVoteQuantity === 0) {
+        newPostVoteQuantity = postVoteQuantity;
+      } else {
+        newPostVoteQuantity = postVoteQuantity - 1;
+      }
+    }
   }
+
   console.log("update");
   console.log(postVoteQuantity);
   postVoteQuantity = newPostVoteQuantity;
