@@ -167,7 +167,7 @@ postRouter.post("/:postId", async (req, res) => {
     ...req.body,
   };
   const postId = req.params.postId;
-  console.log(postId);
+
   const postVoteQuantityArr = await pool.query(
     "select post_vote_quantity from posts inner join posts_vote on posts.post_id = posts_vote.post_id where posts.post_id = $1",
     [postId]
@@ -181,15 +181,13 @@ postRouter.post("/:postId", async (req, res) => {
 
   const haveUpvoted = ifHaveVoted.rows;
 
-  console.log("haveUp");
-  console.log(haveUpvoted);
   if (haveUpvoted.length === 0) {
     await pool.query(
       `insert into posts_vote (user_profile_id,post_id,post_vote)
    values ($1, $2, $3)`,
       [votePost.user_profile_id, postId, votePost.post_vote]
     );
-    console.log("undefied inserted!");
+    console.log("undefined inserted!");
     if (votePost.post_vote === "true") {
       console.log("no have send true");
       newPostVoteQuantity = postVoteQuantity + 1;
@@ -203,7 +201,7 @@ postRouter.post("/:postId", async (req, res) => {
     }
   } else {
     if (haveUpvoted[0].post_vote === votePost.post_vote) {
-      console.log(" have no plus");
+      console.log("have no plus");
       newPostVoteQuantity = postVoteQuantity + 0;
     } else if (
       haveUpvoted[0].post_vote !== votePost.post_vote &&
@@ -232,8 +230,6 @@ postRouter.post("/:postId", async (req, res) => {
     }
   }
 
-  console.log("update");
-  console.log(postVoteQuantity);
   postVoteQuantity = newPostVoteQuantity;
   await pool.query(
     `UPDATE posts
@@ -241,12 +237,101 @@ postRouter.post("/:postId", async (req, res) => {
       WHERE post_id=$2`,
     [newPostVoteQuantity, postId]
   );
-  console.log(postVoteQuantity);
-  console.log("postid:", postId);
-  console.log("userid:", votePost.user_profile_id);
 
   return res.json({
-    message: `Post Voted! ${postVoteQuantity}`,
+    message: `Post Voted! Total vote is ${postVoteQuantity}`,
+  });
+});
+
+// vote comment by comment id
+postRouter.post("/:postId/comments/:commentId", async (req, res) => {
+  const voteComment = {
+    ...req.body,
+  };
+  const commentId = req.params.commentId;
+  const postId = req.params.postId;
+
+  const commentVoteQuantityArr = await pool.query(
+    "select comment_vote_quantity from comments inner join comments_vote on comments.comment_id = comments_vote.comment_id where comments.comment_id = $1 ",
+    [commentId]
+  );
+
+  let commentVoteQuantity =
+    commentVoteQuantityArr.rows[0].comment_vote_quantity;
+  let newCommentVoteQuantity = 0;
+  const ifHaveVoted = await pool.query(
+    `select comments.post_id,comments_vote.user_profile_id,comments_vote.comment_vote from comments_vote inner join comments on comments.comment_id = comments_vote.comment_id where comments_vote.user_profile_id = $1 and comments.comment_id=$2 and comments.post_id = $3`,
+    [voteComment.user_profile_id, commentId, postId]
+  );
+
+  const haveUpvoted = ifHaveVoted.rows;
+
+  console.log("haveUp");
+  console.log(haveUpvoted);
+  if (haveUpvoted.length === 0) {
+    await pool.query(
+      `insert into comments_vote (user_profile_id,comment_id,comment_vote)
+   values ($1, $2, $3)`,
+      [voteComment.user_profile_id, commentId, voteComment.comment_vote]
+    );
+    console.log("undefined inserted!");
+    if (voteComment.comment_vote === "true") {
+      console.log("no have send true");
+      newCommentVoteQuantity = commentVoteQuantity + 1;
+    } else if (voteComment.comment_vote === "false") {
+      console.log("no have send false");
+      if (commentVoteQuantity === 0) {
+        newCommentVoteQuantity = commentVoteQuantity;
+      } else {
+        newCommentVoteQuantity = commentVoteQuantity - 1;
+      }
+    }
+  } else {
+    if (haveUpvoted[0].comment_vote === voteComment.comment_vote) {
+      console.log(" have no plus");
+      newCommentVoteQuantity = commentVoteQuantity + 0;
+    } else if (
+      haveUpvoted[0].comment_vote !== voteComment.comment_vote &&
+      voteComment.comment_vote == "true"
+    ) {
+      await pool.query(
+        `update comments_vote set comment_vote = $1 where user_profile_id = $2 `,
+        [voteComment.comment_vote, voteComment.user_profile_id]
+      );
+      console.log("have false send true");
+      newCommentVoteQuantity = commentVoteQuantity + 1;
+    } else if (
+      haveUpvoted[0].comment_vote !== voteComment.comment_vote &&
+      voteComment.comment_vote == "false"
+    ) {
+      await pool.query(
+        `update comments_vote set comment_vote = $1 where user_profile_id = $2 `,
+        [voteComment.comment_vote, voteComment.user_profile_id]
+      );
+      console.log("have true send false");
+      if (commentVoteQuantity === 0) {
+        newCommentVoteQuantity = commentVoteQuantity;
+      } else {
+        newCommentVoteQuantity = commentVoteQuantity - 1;
+      }
+    }
+  }
+
+  console.log("update");
+  console.log(commentVoteQuantity);
+  commentVoteQuantity = newCommentVoteQuantity;
+  await pool.query(
+    `UPDATE comments
+      SET comment_vote_quantity=$1
+      WHERE comment_id=$2`,
+    [newCommentVoteQuantity, commentId]
+  );
+  console.log(commentVoteQuantity);
+  console.log("commentId:", commentId);
+  console.log("userid:", voteComment.user_profile_id);
+
+  return res.json({
+    message: `Post Voted! Total vote is ${commentVoteQuantity}`,
   });
 });
 export default postRouter;
