@@ -288,7 +288,7 @@ postRouter.post("/:postId/comments/:commentId", async (req, res) => {
     }
   } else {
     if (haveUpvoted[0].comment_vote === voteComment.comment_vote) {
-      console.log(" have no plus");
+      console.log(" already voted no plus");
       newCommentVoteQuantity = commentVoteQuantity + 0;
     } else if (
       haveUpvoted[0].comment_vote !== voteComment.comment_vote &&
